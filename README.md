@@ -4,6 +4,63 @@
 [![Build](https://img.shields.io/github/workflow/status/MaartenGr/keyBERT/Code%20Checks/master)](https://pypi.org/project/keybert/)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1OxpgwKqSzODtO3vS7Xe1nEmZMCAIMckX?usp=sharing)
 
+## This repository is a fork of the original KeyBERT implementation from Maarten Grootendorst.
+It adds a feature that allows users to get grammatically correct keyphrases instead of simple n-grams of pre-defined lengths.
+
+In the original implementation, users could specify the `keyphrase_ngram_range` to define the length of the retrieved keyphrases. 
+However, this raises two issues. 
+First, users usually do not know the optimal n-gram range and therefore have to spend some time experimenting until they find a suitable n-gram range.
+Second, even after finding a good n-gram range, the returned keyphrases are sometimes still grammatically not quite correct or are slightly off-key. 
+Unfortunately, this limits the quality of the returned keyphrases. 
+
+To address these issues, the new feature first extracts candidate keyphrases that consist of zero or more adjectives followed by one or multiple nouns in a pre-processing step instead of simple n-grams. 
+[Wan and Xiao](https://www.aaai.org/Papers/AAAI/2008/AAAI08-136.pdf) successfully used this noun phrase approach during their research in 2008.
+The extracted candidate keyphrases are subsequently passed to the BERT model for embedding generation and similarity calculation. 
+To use this feature, the `keyphrase_ngram_range` argument needs to be defined as `None`, which is now also the default value insted of `(1,1)`. 
+Since the length of keyphrases now depends on part-of-speech tags, there is no need to define an n-gram length anymore.
+
+### Example:
+```python
+from keybert import KeyBERT
+
+doc = """
+         Supervised learning is the machine learning task of learning a function that
+         maps an input to an output based on example input-output pairs. It infers a
+         function from labeled training data consisting of a set of training examples.
+         In supervised learning, each example is a pair consisting of an input object
+         (typically a vector) and a desired output value (also called the supervisory signal). 
+         A supervised learning algorithm analyzes the training data and produces an inferred function, 
+         which can be used for mapping new examples. An optimal scenario will allow for the 
+         algorithm to correctly determine the class labels for unseen instances. This requires 
+         the learning algorithm to generalize from the training data to unseen situations in a 
+         'reasonable' way (see inductive bias).
+      """
+kw_model = KeyBERT()
+```
+Instead of deciding on a suitable n-gram range which could be e.g.(1,2)...
+```python
+>>> kw_model.extract_keywords(doc, keyphrase_ngram_range=(1, 2), stop_words='english')
+[('supervised learning', 0.6779),
+ ('supervised', 0.6676),
+ ('signal supervised', 0.6152),
+ ('examples supervised', 0.6112),
+ ('labeled training', 0.6013)]
+```
+... we can now just let keyBERT decide on suitable keyphrases, without limitations to a maximum or minimum n-gram range:
+```python
+>>> kw_model.extract_keywords(doc, keyphrase_ngram_range=None, stop_words='english')
+[('supervised learning algorithm', 0.6992),
+ ('supervised learning', 0.6779),
+ ('learning algorithm', 0.5632),
+ ('training data', 0.5271),
+ ('training examples', 0.4668)]
+```
+This allows us to make sure that we do not cut off important words caused by defining our n-gram range too short. 
+For example, we would not have found the keyphrase "supervised learning algorithm" with `keyphrase_ngram_range=(1,2)`. 
+Furthermore, we avoid to get keyphrases that are are slightly off-key like "signal supervised", "examples supervised" ore "labeled training".
+
+
+
 <img src="images/logo.png" width="35%" height="35%" align="right" />
 
 # KeyBERT

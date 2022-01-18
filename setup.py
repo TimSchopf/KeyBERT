@@ -9,7 +9,9 @@ base_packages = [
     "sentence-transformers>=0.3.8",
     "scikit-learn>=0.22.2",
     "numpy>=1.18.5",
-    "rich>=10.4.0"
+    "rich>=10.4.0",
+    "nltk>=3.6.5",
+    "spacy>=3.0.1"
 ]
 
 docs_packages = [
@@ -24,10 +26,6 @@ flair_packages = [
     "flair==0.7"
 ]
 
-spacy_packages = [
-    "spacy>=3.0.1"
-]
-
 use_packages = [
     "tensorflow",
     "tensorflow_hub",
@@ -38,7 +36,7 @@ gensim_packages = [
     "gensim>=3.6.0"
 ]
 
-extra_packages = flair_packages + spacy_packages + use_packages + gensim_packages
+extra_packages = flair_packages + use_packages + gensim_packages
 
 dev_packages = docs_packages + test_packages
 

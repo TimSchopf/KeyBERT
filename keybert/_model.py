@@ -11,7 +11,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from keybert._mmr import mmr
 from keybert._maxsum import max_sum_similarity
 from keybert._highlight import highlight_document
-from keybert.backend._utils import select_backend
+from keybert.backend._utils import select_backend, get_candidate_keyphrases
 
 
 class KeyBERT:
@@ -51,7 +51,7 @@ class KeyBERT:
     def extract_keywords(self,
                          docs: Union[str, List[str]],
                          candidates: List[str] = None,
-                         keyphrase_ngram_range: Tuple[int, int] = (1, 1),
+                         keyphrase_ngram_range: Tuple[int, int] = None,
                          stop_words: Union[str, List[str]] = 'english',
                          top_n: int = 5,
                          min_df: int = 1,
@@ -140,7 +140,7 @@ class KeyBERT:
     def _extract_keywords_single_doc(self,
                                      doc: str,
                                      candidates: List[str] = None,
-                                     keyphrase_ngram_range: Tuple[int, int] = (1, 1),
+                                     keyphrase_ngram_range: Tuple[int, int] = None,
                                      stop_words: Union[str, List[str]] = 'english',
                                      top_n: int = 5,
                                      use_maxsum: bool = False,
@@ -174,9 +174,13 @@ class KeyBERT:
             if candidates is None:
                 if vectorizer:
                     count = vectorizer.fit([doc])
+                    candidates = count.get_feature_names()
+                elif (vectorizer is None) and (keyphrase_ngram_range is None):
+                    candidates = get_candidate_keyphrases(document=doc, stop_words=stop_words)
                 else:
                     count = CountVectorizer(ngram_range=keyphrase_ngram_range, stop_words=stop_words).fit([doc])
-                candidates = count.get_feature_names()
+                    candidates = count.get_feature_names()
+
 
             # Extract Embeddings
             doc_embedding = self.model.embed([doc])
@@ -203,7 +207,7 @@ class KeyBERT:
 
     def _extract_keywords_multiple_docs(self,
                                         docs: List[str],
-                                        keyphrase_ngram_range: Tuple[int, int] = (1, 1),
+                                        keyphrase_ngram_range: Tuple[int, int] = None,
                                         stop_words: str = 'english',
                                         top_n: int = 5,
                                         min_df: int = 1,
@@ -228,9 +232,17 @@ class KeyBERT:
         # Extract words
         if vectorizer:
             count = vectorizer.fit(docs)
+            words = count.get_feature_names()
+        elif (vectorizer is None) and (keyphrase_ngram_range is None):
+            print('Multiple None Test')
+            words = [get_candidate_keyphrases(document=doc, stop_words=stop_words) for doc in docs]
+            words = list(set([item for sublist in words for item in sublist]))
+            max_ngram_length = max([len(word.split()) for word in words])
+            count = CountVectorizer(ngram_range=(1, max_ngram_length), vocabulary=words, stop_words=stop_words, min_df=min_df).fit(docs)
         else:
+            print('Multiple not None Test')
             count = CountVectorizer(ngram_range=keyphrase_ngram_range, stop_words=stop_words, min_df=min_df).fit(docs)
-        words = count.get_feature_names()
+            words = count.get_feature_names()
         df = count.transform(docs)
 
         # Extract embeddings
