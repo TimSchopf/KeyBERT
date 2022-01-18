@@ -112,7 +112,7 @@ def get_candidate_keyphrases(document: str, stop_words: str) -> list:
         tagged_pos_doc.append(pos_tagged_sentence)
 
     # extract keyphrases that match the NLTK RegexpParser filter
-    cp = nltk.RegexpParser('CHUNK: {(<J.*>*<N.*>*)}')
+    cp = nltk.RegexpParser('CHUNK: {(<J.*>*<N.*>+)}')
     candidate_keyphrases = []
     prefix_list = [stop_word + ' ' for stop_word in stop_words_list]
     suffix_list = [' ' + stop_word for stop_word in stop_words_list]
